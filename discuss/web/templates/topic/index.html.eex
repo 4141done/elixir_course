@@ -1,7 +1,13 @@
 <h5>Topic it up</h5>
 <ul class="collection">
   <%= for topic <- @topics do %>
-    <li class="collection-item"><%= topic.title %></li>
+    <li class="collection-item">
+      <%= topic.title %>
+      <div class="right">
+          <%= link "Edit", to: topic_path(@conn, :edit, topic) %>
+          <%= link "Delete", to: topic_path(@conn, :delete, topic), method: :delete %>
+        </div>
+    </li>
   <% end %> 
 </ul>
 

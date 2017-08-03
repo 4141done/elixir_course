@@ -3,6 +3,9 @@ defmodule Discuss.TopicController do
 
   alias Discuss.Topic
 
+  plug Discuss.Plugs.RequireAuth when action in [:new, :create, :edit, :update, :delete]
+  plug :check_topic_owner when action in [:update, :edit, :delete]
+
   def index(conn, params) do
     IO.inspect conn.assigns
     IO.inspect params
@@ -18,7 +21,9 @@ defmodule Discuss.TopicController do
   end
 
   def create(conn, %{"topic" => topic}) do
-    changeset = Topic.changeset(%Topic{}, topic)
+    changeset = conn.assigns.user
+    |> build_assoc(:topics)
+    |> Topic.changeset(topic)
 
     case Repo.insert(changeset) do
       {:ok, post} ->
@@ -57,5 +62,30 @@ defmodule Discuss.TopicController do
     conn
     |> put_flash(:info, "Topic Deleted!")
     |> redirect(to: topic_path(conn, :index))
+  end
+
+  def check_topic_owner(conn, _params) do
+    %{params: %{"id" => topic_id}} = conn
+    IO.puts "hey buddy"
+    case Repo.get(Topic, topic_id) do
+      topic = %Topic{} ->
+        if topic.user_id == conn.assigns.user.id do
+          conn
+        else
+          conn
+          |> put_flash(:error, "This is not yours to do")
+          |> redirect(to: topic_path(conn, :index))
+          |> halt()
+        end
+
+      nil ->
+        conn
+        |> put_flash(:error, "Topic does not exist")
+        |> redirect(to: topic_path(conn, :index))
+        |> halt()
+
+      {:error} ->
+        IO.puts "Error getting topic id"
+    end
   end
 end
